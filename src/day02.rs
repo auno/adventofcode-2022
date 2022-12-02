@@ -95,6 +95,25 @@ fn part1(input: &Vec<(Play, Strategy)>) -> u32 {
         .sum()
 }
 
+#[aoc(day2, part2)]
+fn part2(input: &Vec<(Play, Strategy)>) -> u32 {
+    input.into_iter()
+        .map(|(a, b)| (
+            a,
+            match (a, b) {
+                (Rock, Strategy::X) => Scissors,
+                (Paper, Strategy::X) => Rock,
+                (Scissors, Strategy::X) => Paper,
+                (c, Strategy::Y) => *c,
+                (Rock, Strategy::Z) => Paper,
+                (Paper, Strategy::Z) => Scissors,
+                (Scissors, Strategy::Z) => Rock,
+            }
+        ))
+        .map(|(a, b)| score(*a, b))
+        .sum()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -102,5 +121,10 @@ mod tests {
     #[test]
     fn part1_example1() {
         assert_eq!(15, part1(&parse(include_str!("../input/2022/day2.part1.test.15.txt"))));
+    }
+
+    #[test]
+    fn part2_example1() {
+        assert_eq!(12, part2(&parse(include_str!("../input/2022/day2.part2.test.12.txt"))));
     }
 }
