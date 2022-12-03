@@ -1,6 +1,5 @@
 use std::str::FromStr;
 use aoc_runner_derive::{aoc, aoc_generator};
-use itertools::Itertools;
 use Play::{Paper, Rock, Scissors};
 
 #[derive(Debug, Copy, Clone)]
