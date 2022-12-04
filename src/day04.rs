@@ -20,6 +20,17 @@ fn part1(input: &Vec<((u32, u32), (u32, u32))>) -> usize {
         .count()
 }
 
+#[aoc(day4, part2)]
+fn part2(input: &Vec<((u32, u32), (u32, u32))>) -> usize {
+    input.into_iter()
+        .map(|((a1, b1), (a2, b2))| match a1 <= a2 {
+            true => ((a1, b1), (a2, b2)),
+            false => ((a2, b2), (a1, b1)),
+        })
+        .filter(|((_, b1), (a2, _))| a2 <= b1)
+        .count()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -27,5 +38,10 @@ mod tests {
     #[test]
     fn part1_example1() {
         assert_eq!(2, part1(&parse(include_str!("../input/2022/day4.part1.test.2.txt"))));
+    }
+
+    #[test]
+    fn part2_example1() {
+        assert_eq!(4, part2(&parse(include_str!("../input/2022/day4.part2.test.4.txt"))));
     }
 }
