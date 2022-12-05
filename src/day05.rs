@@ -62,6 +62,27 @@ fn part1((stacks, moves): &(Vec<Vec<char>>, Vec<(usize, usize, usize)>)) -> Stri
         .collect()
 }
 
+#[aoc(day5, part2)]
+fn part2((stacks, moves): &(Vec<Vec<char>>, Vec<(usize, usize, usize)>)) -> String {
+    let mut stacks = stacks.clone();
+
+    for &(count, source, target) in moves {
+        let mut buffer = Vec::new();
+
+        for _ in 0..count {
+            buffer.push(stacks[source].pop().unwrap());
+        }
+
+        while !buffer.is_empty() {
+            stacks[target].push(buffer.pop().unwrap());
+        }
+    }
+
+    stacks.into_iter()
+        .map(|stack| *stack.last().unwrap())
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -69,5 +90,10 @@ mod tests {
     #[test]
     fn part1_example1() {
         assert_eq!("CMZ", part1(&parse(include_str!("../input/2022/day5.part1.test.CMZ.txt"))));
+    }
+
+    #[test]
+    fn part2_example1() {
+        assert_eq!("MCD", part2(&parse(include_str!("../input/2022/day5.part2.test.MCD.txt"))));
     }
 }
