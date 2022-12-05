@@ -1,11 +1,10 @@
 use std::collections::VecDeque;
 use aoc_runner_derive::{aoc, aoc_generator};
-use itertools::Itertools;
 use scan_fmt::scan_fmt;
 
 #[aoc_generator(day5)]
 fn parse(input: &str) -> (Vec<Vec<char>>, Vec<(usize, usize, usize)>) {
-    let (stacks_input, moves_input) = input.splitn(2, "\n\n").tuples().next().unwrap();
+    let (stacks_input, moves_input) = input.split_once("\n\n").unwrap();
 
     (
         parse_stacks(stacks_input),
@@ -16,26 +15,19 @@ fn parse(input: &str) -> (Vec<Vec<char>>, Vec<(usize, usize, usize)>) {
 fn parse_stacks(stacks_input: &str) -> Vec<Vec<char>> {
     let mut stacks_input: VecDeque<&str> = stacks_input.lines().rev().collect();
     let stacks_header = stacks_input.pop_front().unwrap();
-    let stacks_header: Vec<usize> = stacks_header
-        .chars()
-        .enumerate()
-        .filter_map(|(i, c)| match c.to_digit(10) {
-            None => None,
-            Some(_) => Some(i),
-        })
-        .collect();
-
-    let mut stacks: Vec<Vec<char>> = (0..stacks_header.len()).map(|_| Vec::new()).collect();
+    let num_stacks = stacks_header.chars()
+        .filter_map(|c| c.to_digit(10))
+        .count();
+    let mut stacks: Vec<Vec<char>> = vec![vec![]; num_stacks];
 
     for line in stacks_input {
-        for (stack, &i) in (&stacks_header).into_iter().enumerate() {
-            let c = line[i..=i].chars().next().unwrap();
-
-            if c != ' ' {
+        for (stack, c) in line.chars().skip(1).step_by(4).enumerate() {
+            if c.is_ascii_alphabetic() {
                 stacks[stack].push(c);
             }
         }
     }
+
     stacks
 }
 
