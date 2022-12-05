@@ -57,17 +57,12 @@ fn part1((stacks, moves): &(Vec<Vec<char>>, Vec<(usize, usize, usize)>)) -> Stri
 #[aoc(day5, part2)]
 fn part2((stacks, moves): &(Vec<Vec<char>>, Vec<(usize, usize, usize)>)) -> String {
     let mut stacks = stacks.clone();
+    let mut buffer = Vec::new();
 
     for &(count, source, target) in moves {
-        let mut buffer = Vec::new();
-
-        for _ in 0..count {
-            buffer.push(stacks[source].pop().unwrap());
-        }
-
-        while !buffer.is_empty() {
-            stacks[target].push(buffer.pop().unwrap());
-        }
+        let source_offset = stacks[source].len() - count;
+        buffer.extend(stacks[source].drain(source_offset..));
+        stacks[target].extend(buffer.drain(0..));
     }
 
     stacks.into_iter()
