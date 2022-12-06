@@ -6,19 +6,27 @@ fn parse(input: &str) -> Vec<char> {
     input.chars().collect()
 }
 
-#[aoc(day6, part1)]
-fn part1(input: &[char]) -> usize {
+fn solve(input: &[char], length: usize) -> Option<usize> {
     input
-        .windows(4)
+        .windows(length)
         .enumerate()
         .find_map(|(i, w)| {
             if w.into_iter().tuple_combinations().all(|(a,b)| a != b) {
-                Some(i + 3 + 1)
+                Some(i + length)
             } else {
                 None
             }
         })
-        .unwrap()
+}
+
+#[aoc(day6, part1)]
+fn part1(input: &[char]) -> usize {
+    solve(input, 4).unwrap()
+}
+
+#[aoc(day6, part2)]
+fn part2(input: &[char]) -> usize {
+    solve(input, 14).unwrap()
 }
 
 #[cfg(test)]
@@ -48,5 +56,30 @@ mod tests {
     #[test]
     fn part1_example5() {
         assert_eq!(11, part1(&parse("zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw")));
+    }
+
+    #[test]
+    fn part2_example1() {
+        assert_eq!(19, part2(&parse("mjqjpqmgbljsphdztnvjfqwrcgsmlb")));
+    }
+
+    #[test]
+    fn part2_example2() {
+        assert_eq!(23, part2(&parse("bvwbjplbgvbhsrlpgdmjqwftvncz")));
+    }
+
+    #[test]
+    fn part2_example3() {
+        assert_eq!(23, part2(&parse("nppdvjthqldpwncqszvftbrmjlhg")));
+    }
+
+    #[test]
+    fn part2_example4() {
+        assert_eq!(29, part2(&parse("nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg")));
+    }
+
+    #[test]
+    fn part2_example5() {
+        assert_eq!(26, part2(&parse("zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw")));
     }
 }
