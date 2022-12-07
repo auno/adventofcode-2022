@@ -56,13 +56,12 @@ fn path_join(cwd: &str, target: &str) -> String {
     }
 }
 
-#[aoc(day7, part1)]
-fn part1(input: &Vec<Line>) -> usize {
+fn parse_lines(lines: &[Line]) -> (Vec<(String, usize)>, Vec<String>) {
     let mut cwd = "/".to_string();
     let mut files = vec![];
     let mut dirs = vec![];
 
-    for line in input.into_iter().skip(1) {
+    for line in lines.iter().skip(1) {
         match line {
             CommandCd(target) => {
                 cwd = format!("{}/", path_join(&cwd, target));
@@ -77,17 +76,48 @@ fn part1(input: &Vec<Line>) -> usize {
         }
     }
 
-    (&dirs)
-        .into_iter()
+    (files, dirs)
+}
+
+fn calculate_dir_sizes<'a>(files: &[(String, usize)], dirs: &'a [String]) -> Vec<(&'a str, usize)> {
+    dirs
+        .iter()
         .map(|dir| {
-            (&files)
-                .into_iter()
-                .filter(|(name, _size)| name.starts_with(dir))
-                .map(|(_name, size)| size)
-                .sum::<usize>()
+            (
+                dir.as_str(),
+                files
+                    .iter()
+                    .filter(|(name, _size)| name.starts_with(dir))
+                    .map(|(_name, size)| size)
+                    .sum::<usize>()
+            )
         })
+        .collect()
+}
+
+#[aoc(day7, part1)]
+fn part1(input: &[Line]) -> usize {
+    let (files, dirs) = parse_lines(input);
+
+    calculate_dir_sizes(&files, &dirs)
+        .into_iter()
+        .map(|(_name, size)| size)
         .filter(|size| *size <= 100000)
         .sum()
+}
+
+#[aoc(day7, part2)]
+fn part2(input: &[Line]) -> usize {
+    let (files, dirs) = parse_lines(input);
+    let total_used = files.iter().map(|(_name, size)| size).sum::<usize>();
+    let needed = total_used - 40000000;
+
+    calculate_dir_sizes(&files, &dirs)
+        .into_iter()
+        .map(|(_name, size)| size)
+        .sorted()
+        .find(|size| *size >= needed)
+        .unwrap()
 }
 
 #[cfg(test)]
@@ -102,5 +132,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(1886043, part1(&parse(include_str!("../input/2022/day7.txt"))));
+    }
+
+    #[test]
+    fn part2_example1() {
+        assert_eq!(24933642, part2(&parse(include_str!("../input/2022/day7.part2.test.24933642.txt"))));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(3842121, part2(&parse(include_str!("../input/2022/day7.txt"))));
     }
 }
