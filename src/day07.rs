@@ -20,11 +20,12 @@ impl FromStr for Line {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parts = s.split(" ").collect::<Vec<_>>();
 
-        match (parts[0], parts[1]) {
-            ("$", "cd") => Ok(CommandCd(parts[2].to_string())),
-            ("$", "ls") => Ok(CommandLs),
-            ("dir", name) => Ok(Dir(name.to_string())),
-            (size, name) => Ok(File(name.to_string(), size.parse().unwrap())),
+        match parts[..] {
+            ["$", "cd", name] => Ok(CommandCd(name.to_string())),
+            ["$", "ls"] => Ok(CommandLs),
+            ["dir", name] => Ok(Dir(name.to_string())),
+            [size, name] => Ok(File(name.to_string(), size.parse().unwrap())),
+            _ => panic!("Unexpected input: {}", s),
         }
     }
 }
