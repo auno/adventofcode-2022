@@ -40,27 +40,6 @@ fn parse(input: &str) -> anyhow::Result<Vec<(Direction, usize)>> {
         .collect()
 }
 
-fn follow((hx, hy): (i32, i32), (tx, ty): (i32, i32)) -> (i32, i32) {
-    match () {
-        _ if tx == hx && ty == hy + 2 => (tx, ty - 1),
-        _ if tx == hx && ty == hy - 2 => (tx, ty + 1),
-        _ if tx == hx + 2 && ty == hy => (tx - 1, ty),
-        _ if tx == hx - 2 && ty == hy => (tx + 1, ty),
-
-        _ if tx == hx + 2 && ty == hy + 2 => (tx - 1, ty - 1),
-        _ if tx == hx - 2 && ty == hy - 2 => (tx + 1, ty + 1),
-        _ if tx == hx + 2 && ty == hy - 2 => (tx - 1, ty + 1),
-        _ if tx == hx - 2 && ty == hy + 2 => (tx + 1, ty - 1),
-
-        _ if (tx == hx + 1 || tx == hx - 1) && ty == hy + 2 => (hx, hy + 1),
-        _ if (tx == hx + 1 || tx == hx - 1) && ty == hy - 2 => (hx, hy - 1),
-        _ if tx == hx + 2 && (ty == hy + 1 || ty == hy - 1) => (hx + 1, hy),
-        _ if tx == hx - 2 && (ty == hy + 1 || ty == hy - 1) => (hx - 1, hy),
-
-        _ => (tx, ty)
-    }
-}
-
 fn expand_movements(movements: &Vec<(Direction, usize)>) -> Vec<Direction> {
     movements.iter()
         .flat_map(|(direction, count)| (0..*count).map(|_| *direction))
@@ -76,12 +55,19 @@ fn apply_movement((x, y): (i32, i32), movement: Direction) -> (i32, i32) {
     }
 }
 
+fn follow((hx, hy): (i32, i32), (tx, ty): (i32, i32)) -> (i32, i32) {
+    if (hx - tx).abs() <= 1 && (hy - ty).abs() <= 1 {
+        return (tx, ty);
+    }
+
+    (tx + (hx - tx).signum(), ty + (hy - ty).signum())
+}
+
 fn solve(input: &Vec<(Direction, usize)>, num_knots: usize) -> usize {
     let mut knots = vec![(0, 0); num_knots];
-    let movements = expand_movements(input);
-    let mut tail_been = HashSet::new();
+    let mut tail_been = HashSet::from([(0, 0)]);
 
-    for movement in movements {
+    for movement in expand_movements(input) {
         knots[0] = apply_movement(knots[0], movement);
 
         for i in 1..(knots.len()) {
