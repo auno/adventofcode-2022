@@ -1,8 +1,10 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 use itertools::Itertools;
 
+type RangePair = ((u32, u32), (u32, u32));
+
 #[aoc_generator(day4)]
-fn parse(input: &str) -> Vec<((u32, u32), (u32, u32))> {
+fn parse(input: &str) -> Vec<RangePair> {
     input
         .lines()
         .flat_map(|line| line.split(','))
@@ -14,15 +16,15 @@ fn parse(input: &str) -> Vec<((u32, u32), (u32, u32))> {
 }
 
 #[aoc(day4, part1)]
-fn part1(input: &Vec<((u32, u32), (u32, u32))>) -> usize {
-    input.into_iter()
+fn part1(input: &[RangePair]) -> usize {
+    input.iter()
         .filter(|((a1, b1), (a2, b2))| (a2 >= a1 && b2 <= b1) || (a1 >= a2 && b1 <= b2))
         .count()
 }
 
 #[aoc(day4, part2)]
-fn part2(input: &Vec<((u32, u32), (u32, u32))>) -> usize {
-    input.into_iter()
+fn part2(input: &[RangePair]) -> usize {
+    input.iter()
         .map(|((a1, b1), (a2, b2))| match a1 <= a2 {
             true => ((a1, b1), (a2, b2)),
             false => ((a2, b2), (a1, b1)),

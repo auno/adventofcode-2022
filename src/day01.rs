@@ -10,17 +10,17 @@ fn parse(input: &str) -> Vec<Vec<u32>> {
 }
 
 #[aoc(day1, part1)]
-fn part1(input: &Vec<Vec<u32>>) -> u32 {
-    input.into_iter()
-        .map(|calorie_counts| calorie_counts.into_iter().sum())
+fn part1(input: &[Vec<u32>]) -> u32 {
+    input.iter()
+        .map(|calorie_counts| calorie_counts.iter().sum())
         .max()
         .unwrap_or_default()
 }
 
 #[aoc(day1, part2)]
-fn part2(input: &Vec<Vec<u32>>) -> u32 {
-    input.into_iter()
-        .map(|calorie_counts| calorie_counts.into_iter().sum::<u32>())
+fn part2(input: &[Vec<u32>]) -> u32 {
+    input.iter()
+        .map(|calorie_counts| calorie_counts.iter().sum::<u32>())
         .sorted()
         .rev()
         .take(3)

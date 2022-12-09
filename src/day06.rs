@@ -11,7 +11,7 @@ fn solve(input: &[char], length: usize) -> Option<usize> {
         .windows(length)
         .enumerate()
         .find_map(|(i, w)| {
-            if w.into_iter().tuple_combinations().all(|(a,b)| a != b) {
+            if w.iter().tuple_combinations().all(|(a,b)| a != b) {
                 Some(i + length)
             } else {
                 None

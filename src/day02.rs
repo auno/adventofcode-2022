@@ -80,8 +80,8 @@ fn score(other_play: Play, your_play: Play) -> u32 {
 }
 
 #[aoc(day2, part1)]
-fn part1(input: &Vec<(Play, Strategy)>) -> u32 {
-    input.into_iter()
+fn part1(input: &[(Play, Strategy)]) -> u32 {
+    input.iter()
         .map(|(a, b)| (
             a,
             match b {
@@ -95,8 +95,8 @@ fn part1(input: &Vec<(Play, Strategy)>) -> u32 {
 }
 
 #[aoc(day2, part2)]
-fn part2(input: &Vec<(Play, Strategy)>) -> u32 {
-    input.into_iter()
+fn part2(input: &[(Play, Strategy)]) -> u32 {
+    input.iter()
         .map(|(a, b)| (
             a,
             match (a, b) {

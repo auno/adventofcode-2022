@@ -20,8 +20,8 @@ fn priority(c: char) -> u32 {
 }
 
 #[aoc(day3, part1)]
-fn part1(input: &Vec<String>) -> u32 {
-    input.into_iter()
+fn part1(input: &[String]) -> u32 {
+    input.iter()
         .map(|line| (&line[0..(line.len() / 2)], &line[(line.len() / 2)..]))
         .filter_map(|(a, b)| {
             a.chars()
@@ -32,13 +32,13 @@ fn part1(input: &Vec<String>) -> u32 {
 }
 
 #[aoc(day3, part2)]
-fn part2(input: &Vec<String>) -> u32 {
-    input.into_iter()
+fn part2(input: &[String]) -> u32 {
+    input.iter()
         .tuples()
         .filter_map(|(a, b, c)| {
             a.chars()
-                .filter(|candidate| b.chars().contains(&candidate))
-                .find(|candidate| c.chars().contains(&candidate))
+                .filter(|candidate| b.chars().contains(candidate))
+                .find(|candidate| c.chars().contains(candidate))
         })
         .map(priority)
         .sum()

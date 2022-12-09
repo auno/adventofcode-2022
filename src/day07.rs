@@ -18,7 +18,7 @@ impl FromStr for Line {
     type Err = AocError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parts = s.split(" ").collect::<Vec<_>>();
+        let parts = s.split(' ').collect::<Vec<_>>();
 
         match parts[..] {
             ["$", "cd", name] => Ok(CommandCd(name.to_string())),
@@ -40,20 +40,20 @@ fn parse(input: &str) -> Vec<Line> {
 }
 
 fn basename(name: &str) -> String {
-    let skips = if name.ends_with("/") {
+    let skips = if name.ends_with('/') {
         2
     } else {
         1
     };
 
-    let parts = name.split("/").collect::<Vec<_>>();
-    (&parts).into_iter().take(parts.len() - skips).join("/")
+    let parts = name.split('/').collect::<Vec<_>>();
+    parts.iter().take(parts.len() - skips).join("/")
 }
 
 fn path_join(cwd: &str, target: &str) -> String {
     match target {
         ".." => basename(cwd),
-        _ => format!("{}{}", cwd, target).to_string(),
+        _ => format!("{}{}", cwd, target),
     }
 }
 

@@ -2,8 +2,10 @@ use std::collections::VecDeque;
 use aoc_runner_derive::{aoc, aoc_generator};
 use scan_fmt::scan_fmt;
 
+type Input = (Vec<Vec<char>>, Vec<(usize, usize, usize)>);
+
 #[aoc_generator(day5)]
-fn parse(input: &str) -> (Vec<Vec<char>>, Vec<(usize, usize, usize)>) {
+fn parse(input: &str) -> Input {
     let (stacks_input, moves_input) = input.split_once("\n\n").unwrap();
 
     (
@@ -39,7 +41,7 @@ fn parse_moves(moves_input: &str) -> Vec<(usize, usize, usize)> {
 }
 
 #[aoc(day5, part1)]
-fn part1((stacks, moves): &(Vec<Vec<char>>, Vec<(usize, usize, usize)>)) -> String {
+fn part1((stacks, moves): &Input) -> String {
     let mut stacks = stacks.clone();
 
     for &(count, source, target) in moves {
@@ -55,7 +57,7 @@ fn part1((stacks, moves): &(Vec<Vec<char>>, Vec<(usize, usize, usize)>)) -> Stri
 }
 
 #[aoc(day5, part2)]
-fn part2((stacks, moves): &(Vec<Vec<char>>, Vec<(usize, usize, usize)>)) -> String {
+fn part2((stacks, moves): &Input) -> String {
     let mut stacks = stacks.clone();
     let mut buffer = Vec::new();
 

@@ -15,7 +15,7 @@ enum Direction {
 impl FromStr for Direction {
     type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> anyhow::Result<Self> {
+    fn from_str(s: &str) -> Result<Self> {
         match s {
             "U" => Ok(Up),
             "D" => Ok(Down),
@@ -27,7 +27,7 @@ impl FromStr for Direction {
 }
 
 #[aoc_generator(day9)]
-fn parse(input: &str) -> anyhow::Result<Vec<(Direction, usize)>> {
+fn parse(input: &str) -> Result<Vec<(Direction, usize)>> {
     input
         .lines()
         .map(|line| {
@@ -40,7 +40,7 @@ fn parse(input: &str) -> anyhow::Result<Vec<(Direction, usize)>> {
         .collect()
 }
 
-fn expand_movements(movements: &Vec<(Direction, usize)>) -> Vec<Direction> {
+fn expand_movements(movements: &[(Direction, usize)]) -> Vec<Direction> {
     movements.iter()
         .flat_map(|(direction, count)| (0..*count).map(|_| *direction))
         .collect::<Vec<_>>()
@@ -63,7 +63,7 @@ fn follow((hx, hy): (i32, i32), (tx, ty): (i32, i32)) -> (i32, i32) {
     (tx + (hx - tx).signum(), ty + (hy - ty).signum())
 }
 
-fn solve(input: &Vec<(Direction, usize)>, num_knots: usize) -> usize {
+fn solve(input: &[(Direction, usize)], num_knots: usize) -> usize {
     let mut knots = vec![(0, 0); num_knots];
     let mut tail_been = HashSet::from([(0, 0)]);
 
@@ -81,12 +81,12 @@ fn solve(input: &Vec<(Direction, usize)>, num_knots: usize) -> usize {
 }
 
 #[aoc(day9, part1)]
-fn part1(input: &Vec<(Direction, usize)>) -> usize {
+fn part1(input: &[(Direction, usize)]) -> usize {
     solve(input, 2)
 }
 
 #[aoc(day9, part2)]
-fn part2(input: &Vec<(Direction, usize)>) -> usize {
+fn part2(input: &[(Direction, usize)]) -> usize {
     solve(input, 10)
 }
 
