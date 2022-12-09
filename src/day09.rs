@@ -40,46 +40,68 @@ fn parse(input: &str) -> anyhow::Result<Vec<(Direction, usize)>> {
         .collect()
 }
 
-#[aoc(day9, part1)]
-fn part1(input: &Vec<(Direction, usize)>) -> usize {
-    let (mut hx, mut hy) = (0, 0);
-    let (mut tx, mut ty) = (0, 0);
-    let movements = input.iter()
+fn follow((hx, hy): (i32, i32), (tx, ty): (i32, i32)) -> (i32, i32) {
+    match () {
+        _ if tx == hx && ty == hy + 2 => (tx, ty - 1),
+        _ if tx == hx && ty == hy - 2 => (tx, ty + 1),
+        _ if tx == hx + 2 && ty == hy => (tx - 1, ty),
+        _ if tx == hx - 2 && ty == hy => (tx + 1, ty),
+
+        _ if tx == hx + 2 && ty == hy + 2 => (tx - 1, ty - 1),
+        _ if tx == hx - 2 && ty == hy - 2 => (tx + 1, ty + 1),
+        _ if tx == hx + 2 && ty == hy - 2 => (tx - 1, ty + 1),
+        _ if tx == hx - 2 && ty == hy + 2 => (tx + 1, ty - 1),
+
+        _ if (tx == hx + 1 || tx == hx - 1) && ty == hy + 2 => (hx, hy + 1),
+        _ if (tx == hx + 1 || tx == hx - 1) && ty == hy - 2 => (hx, hy - 1),
+        _ if tx == hx + 2 && (ty == hy + 1 || ty == hy - 1) => (hx + 1, hy),
+        _ if tx == hx - 2 && (ty == hy + 1 || ty == hy - 1) => (hx - 1, hy),
+
+        _ => (tx, ty)
+    }
+}
+
+fn expand_movements(movements: &Vec<(Direction, usize)>) -> Vec<Direction> {
+    movements.iter()
         .flat_map(|(direction, count)| (0..*count).map(|_| *direction))
-        .collect::<Vec<_>>();
-    let mut t_been = HashSet::new();
+        .collect::<Vec<_>>()
+}
+
+fn apply_movement((x, y): (i32, i32), movement: Direction) -> (i32, i32) {
+    match movement {
+        Up => (x, y + 1),
+        Down => (x, y - 1),
+        Left => (x - 1, y),
+        Right => (x + 1, y),
+    }
+}
+
+fn solve(input: &Vec<(Direction, usize)>, num_knots: usize) -> usize {
+    let mut knots = vec![(0, 0); num_knots];
+    let movements = expand_movements(input);
+    let mut tail_been = HashSet::new();
 
     for movement in movements {
-        (hx, hy) = match movement {
-            Up => (hx, hy + 1),
-            Down => (hx, hy - 1),
-            Left => (hx - 1, hy),
-            Right => (hx + 1, hy),
-        };
+        knots[0] = apply_movement(knots[0], movement);
 
-        (tx, ty) = match () {
-            _ if tx == hx && ty == hy + 2 => (tx, ty - 1),
-            _ if tx == hx && ty == hy - 2 => (tx, ty + 1),
-            _ if tx == hx + 2 && ty == hy => (tx - 1, ty),
-            _ if tx == hx - 2 && ty == hy => (tx + 1, ty),
+        for i in 1..(knots.len()) {
+            knots[i] = follow(knots[i - 1], knots[i]);
+        }
 
-            _ if tx == hx + 2 && ty == hy + 2 => (tx - 1, ty - 1),
-            _ if tx == hx - 2 && ty == hy - 2 => (tx + 1, ty + 1),
-            _ if tx == hx + 2 && ty == hy - 2 => (tx - 1, ty + 1),
-            _ if tx == hx - 2 && ty == hy + 2 => (tx + 1, ty - 1),
-
-            _ if (tx == hx + 1 || tx == hx - 1) && ty == hy + 2 => (hx, hy + 1),
-            _ if (tx == hx + 1 || tx == hx - 1) && ty == hy - 2 => (hx, hy - 1),
-            _ if tx == hx + 2 && (ty == hy + 1 || ty == hy - 1) => (hx + 1, hy),
-            _ if tx == hx - 2 && (ty == hy + 1 || ty == hy - 1) => (hx - 1, hy),
-
-            _ => (tx, ty)
-        };
-
-        t_been.insert((tx, ty));
+        tail_been.insert(knots[knots.len() - 1]);
     }
 
-    t_been.len()
+    tail_been.len()
+}
+
+#[aoc(day9, part1)]
+fn part1(input: &Vec<(Direction, usize)>) -> usize {
+    solve(input, 2)
+}
+
+#[aoc(day9, part2)]
+fn part2(input: &Vec<(Direction, usize)>) -> usize {
+    solve(input, 10)
 }
 
 #[cfg(test)]
@@ -94,5 +116,20 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(6090, part1(&parse(include_str!("../input/2022/day9.txt")).unwrap()));
+    }
+
+    #[test]
+    fn part2_example1() {
+        assert_eq!(1, part2(&parse(include_str!("../input/2022/day9.part2.test.1.txt")).unwrap()));
+    }
+
+    #[test]
+    fn part2_example2() {
+        assert_eq!(36, part2(&parse(include_str!("../input/2022/day9.part2.test.36.txt")).unwrap()));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(2566, part2(&parse(include_str!("../input/2022/day9.txt")).unwrap()));
     }
 }
