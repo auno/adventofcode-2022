@@ -2,23 +2,24 @@ use std::str::FromStr;
 use aoc_runner_derive::{aoc, aoc_generator};
 use anyhow::{bail, Context, Error, Result};
 use itertools::Itertools;
+use scan_fmt::scan_fmt;
 use crate::day11::Operation::{Add, Mul, Square};
 
 #[derive(Debug, Clone)]
 struct Monkey {
-    items: Vec<u32>,
+    items: Vec<u64>,
     operation: Operation,
-    divisibility_test: u32,
-    target_if_true: u32,
-    target_if_false: u32,
-    num_inspected: u32,
+    divisibility_test: u64,
+    target_if_true: usize,
+    target_if_false: usize,
+    num_inspected: usize,
 }
 
 #[derive(Debug, Copy, Clone)]
 enum Operation {
     Square,
-    Add(u32),
-    Mul(u32),
+    Add(u64),
+    Mul(u64),
 }
 
 impl FromStr for Operation {
@@ -40,38 +41,14 @@ fn parse_monkey(input: &str) -> Result<Monkey> {
     let mut input = input.lines();
     input.next();
 
-    let starting_items = input.next().context("Monkey syntax error")?;
-    let Some(("Starting items", items)) = starting_items.trim().split_once(": ") else {
-        bail!("Monkey syntax error, could not parse starting items: {}", starting_items);
-    };
-    let items = items
+    let items = scan_fmt!(input.next().context("Missing starting items")?, "Starting items: {[0-9, ]}", String)?
         .split(", ")
         .map(|item| item.parse().context("Could not parse item worry level"))
-        .collect::<Result<Vec<u32>>>()?;
-
-    let operation = input.next().context("Monkey syntax error")?;
-    let Some(("Operation", operation)) = operation.trim().split_once(": ") else {
-        bail!("Monkey syntax error, could not parse operation: {}", operation);
-    };
-    let operation = operation.parse::<Operation>()?;
-
-    let divisibility_test = input.next().context("Monkey syntax error")?;
-    let Some(("Test: divisible by", divisibility_test)) = divisibility_test.trim().rsplit_once(' ') else {
-        bail!("Monkey syntax error, could not parse divisibility test: {}", divisibility_test);
-    };
-    let divisibility_test = divisibility_test.parse::<u32>()?;
-
-    let target_if_true = input.next().context("Monkey syntax error")?;
-    let Some(("If true: throw to monkey", target_if_true)) = target_if_true.trim().rsplit_once(' ') else {
-        bail!("Monkey syntax error, could not parse target if true: {}", target_if_true);
-    };
-    let target_if_true = target_if_true.parse::<u32>().context("Unable to parse target_if_true")?;
-
-    let target_if_false = input.next().context("Monkey syntax error")?;
-    let Some(("If false: throw to monkey", target_if_false)) = target_if_false.trim().rsplit_once(' ') else {
-        bail!("Monkey syntax error, could not parse target if false: {}", target_if_false);
-    };
-    let target_if_false = target_if_false.parse::<u32>().context("Unable to parse target_if_true")?;
+        .collect::<Result<Vec<u64>>>()?;
+    let operation = scan_fmt!(input.next().context("Missing operation")?.trim(), "Operation: {/.*/}", String).map(|s| s.parse())??;
+    let divisibility_test = scan_fmt!(input.next().context("Missing divisibility test")?.trim(), "Test: divisible by {d}", u64)?;
+    let target_if_true = scan_fmt!(input.next().context("Missing target if true")?.trim(), "If true: throw to monkey {d}", usize)?;
+    let target_if_false = scan_fmt!(input.next().context("Missing target if false")?.trim(), "If false: throw to monkey {d}", usize)?;
 
     Ok(Monkey {
         items,
@@ -91,11 +68,10 @@ fn parse(input: &str) -> Result<Vec<Monkey>> {
         .collect()
 }
 
-#[aoc(day11, part1)]
-fn part1(input: &[Monkey]) -> u32 {
-    let mut monkeys = input.to_vec();
+fn solve(monkeys: &[Monkey], rounds: usize, management_technique: impl Fn(u64) -> u64) -> usize {
+    let mut monkeys = monkeys.to_vec();
 
-    for _round in 0..20 {
+    for _ in 0..rounds {
         for i in 0..monkeys.len() {
             for mut item in monkeys[i].items.clone() {
                 item = match monkeys[i].operation {
@@ -103,7 +79,7 @@ fn part1(input: &[Monkey]) -> u32 {
                     Add(v) => item + v,
                     Mul(v) => item * v,
                 };
-                item /= 3;
+                item = management_technique(item);
                 let target = if item % monkeys[i].divisibility_test == 0 {
                     monkeys[i].target_if_true
                 } else {
@@ -126,6 +102,17 @@ fn part1(input: &[Monkey]) -> u32 {
         .product()
 }
 
+#[aoc(day11, part1)]
+fn part1(monkeys: &[Monkey]) -> usize {
+    solve(monkeys, 20, |item| item / 3)
+}
+
+#[aoc(day11, part2)]
+fn part2(monkeys: &[Monkey]) -> usize {
+    let modulus: u64 = monkeys.iter().map(|m| m.divisibility_test).product();
+    solve(monkeys, 10000, |item| item % modulus)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,5 +125,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(54054, part1(&parse(include_str!("../input/2022/day11.txt")).unwrap()));
+    }
+
+    #[test]
+    fn part2_example1() {
+        assert_eq!(2713310158, part2(&parse(include_str!("../input/2022/day11.part2.test.2713310158.txt")).unwrap()));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(14314925001, part2(&parse(include_str!("../input/2022/day11.txt")).unwrap()));
     }
 }
