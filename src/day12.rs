@@ -47,8 +47,7 @@ fn neighbors((i, j): (i32, i32), grid: &HashMap<(i32, i32), i32>) -> impl IntoIt
         .collect::<Vec<_>>()
 }
 
-#[aoc(day12, part1)]
-fn part1((source, target, grid): &Input) -> i32 {
+fn distance(source: &(i32, i32), target: &(i32, i32), grid: &HashMap<(i32, i32), i32>) -> Option<i32> {
     let mut distances: HashMap<(i32, i32), i32> = HashMap::new();
     let mut queue: BinaryHeap<(Reverse<i32>, (i32, i32))> = BinaryHeap::new();
 
@@ -70,7 +69,22 @@ fn part1((source, target, grid): &Input) -> i32 {
         }
     }
 
-    distances[target]
+    distances.get(target).copied()
+}
+
+#[aoc(day12, part1)]
+fn part1((source, target, grid): &Input) -> i32 {
+    distance(source, target, grid).unwrap()
+}
+
+#[aoc(day12, part2)]
+fn part2((_, target, grid): &Input) -> i32 {
+    grid
+        .iter()
+        .filter(|(_, elevation)| **elevation == 'a' as i32)
+        .filter_map(|(source, _)| distance(source, target, grid))
+        .min()
+        .unwrap()
 }
 
 #[cfg(test)]
@@ -85,5 +99,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(528, part1(&parse(include_str!("../input/2022/day12.txt")).unwrap()));
+    }
+
+    #[test]
+    fn part2_example1() {
+        assert_eq!(29, part2(&parse(include_str!("../input/2022/day12.part2.test.29.txt")).unwrap()));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(522, part2(&parse(include_str!("../input/2022/day12.txt")).unwrap()));
     }
 }
