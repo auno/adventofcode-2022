@@ -47,12 +47,14 @@ fn neighbors((i, j): (i32, i32), grid: &HashMap<(i32, i32), i32>) -> impl IntoIt
         .collect::<Vec<_>>()
 }
 
-fn distance(source: &(i32, i32), target: &(i32, i32), grid: &HashMap<(i32, i32), i32>) -> Option<i32> {
+fn distance(sources: &[(i32, i32)], target: &(i32, i32), grid: &HashMap<(i32, i32), i32>) -> Option<i32> {
     let mut distances: HashMap<(i32, i32), i32> = HashMap::new();
     let mut queue: BinaryHeap<(Reverse<i32>, (i32, i32))> = BinaryHeap::new();
 
-    distances.insert(*source, 0);
-    queue.push((Reverse(0), *source));
+    for source in sources {
+        distances.insert(*source, 0);
+        queue.push((Reverse(0), *source));
+    }
 
     while let Some((Reverse(distance), position)) = queue.pop() {
         if position == *target {
@@ -74,17 +76,19 @@ fn distance(source: &(i32, i32), target: &(i32, i32), grid: &HashMap<(i32, i32),
 
 #[aoc(day12, part1)]
 fn part1((source, target, grid): &Input) -> i32 {
-    distance(source, target, grid).unwrap()
+    distance(&[*source], target, grid).unwrap()
 }
 
 #[aoc(day12, part2)]
 fn part2((_, target, grid): &Input) -> i32 {
-    grid
+    let sources = grid
         .iter()
         .filter(|(_, elevation)| **elevation == 'a' as i32)
-        .filter_map(|(source, _)| distance(source, target, grid))
-        .min()
-        .unwrap()
+        .map(|(position, _)| position)
+        .copied()
+        .collect::<Vec<_>>();
+
+    distance(&sources, target, grid).unwrap()
 }
 
 #[cfg(test)]
