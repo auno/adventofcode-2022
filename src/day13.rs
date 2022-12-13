@@ -101,29 +101,38 @@ fn parse(input: &str) -> Result<Vec<(Value, Value)>> {
         .collect()
 }
 
-fn compare(a: &Value, b: &Value) -> Ordering {
-    let (a, b): (Vec<&Value>, Vec<&Value>) = match (a, b) {
-        (Number(av), Number(bv)) => return av.cmp(bv),
-        (Number(_), List(bl)) => (vec![a], bl.iter().collect()),
-        (List(al), Number(_)) => (al.iter().collect(), vec![b]),
-        (List(al), List(bl)) => (al.iter().collect(), bl.iter().collect()),
-    };
-
-    let ordering = a
-        .iter()
-        .zip(b.iter())
-        .fold(Equal, |acc, (a, b)| {
-            match acc {
-                Less | Greater => acc,
-                Equal => compare(a, b),
-            }
-        });
-
-    if ordering == Equal {
-        return a.len().cmp(&b.len());
+impl PartialOrd<Self> for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
+}
 
-    ordering
+impl Ord for Value {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let (a, b) = (self, other);
+        let (a, b) = match (a, b) {
+            (Number(av), Number(bv)) => return av.cmp(bv),
+            (Number(_), List(bl)) => (vec![a], bl.iter().collect()),
+            (List(al), Number(_)) => (al.iter().collect(), vec![b]),
+            (List(al), List(bl)) => (al.iter().collect(), bl.iter().collect()),
+        };
+
+        let ordering = a
+            .iter()
+            .zip(b.iter())
+            .fold(Equal, |acc, (a, b)| {
+                match acc {
+                    Less | Greater => acc,
+                    Equal => a.cmp(b),
+                }
+            });
+
+        if ordering == Equal {
+            return a.len().cmp(&b.len());
+        }
+
+        ordering
+    }
 }
 
 #[aoc(day13, part1)]
@@ -131,10 +140,8 @@ fn part1(input: &[(Value, Value)]) -> usize {
     input
         .iter()
         .enumerate()
-        .filter_map(|(i, (a, b))| match compare(a, b) {
-            Less | Equal => Some(i + 1),
-            Greater => None,
-        })
+        .filter(|(_, (a, b))| a <= b)
+        .map(|(i, _)| i + 1)
         .sum()
 }
 
@@ -149,7 +156,7 @@ fn part2(input: &[(Value, Value)]) -> usize {
         .iter()
         .flat_map(|(a, b)| vec![a, b])
         .chain(&dividers)
-        .sorted_by(|a, b| compare(a, b))
+        .sorted()
         .enumerate()
         .filter(|(_, signal)| dividers.contains(*signal))
         .map(|(i, _)| i + 1)
