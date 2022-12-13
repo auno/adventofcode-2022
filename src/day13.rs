@@ -4,9 +4,10 @@ use aoc_runner_derive::{aoc, aoc_generator};
 use lazy_static::lazy_static;
 use regex::Regex;
 use anyhow::{Context, Result};
+use itertools::Itertools;
 use crate::day13::Value::{List, Number};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 enum Value {
     Number(u32),
     List(Vec<Value>),
@@ -137,6 +138,24 @@ fn part1(input: &[(Value, Value)]) -> usize {
         .sum()
 }
 
+#[aoc(day13, part2)]
+fn part2(input: &[(Value, Value)]) -> usize {
+    let dividers = vec![
+        List(vec![List(vec![Number(2)])]),
+        List(vec![List(vec![Number(6)])]),
+    ];
+
+    input
+        .iter()
+        .flat_map(|(a, b)| vec![a, b])
+        .chain(&dividers)
+        .sorted_by(|a, b| compare(a, b))
+        .enumerate()
+        .filter(|(_, signal)| dividers.contains(*signal))
+        .map(|(i, _)| i + 1)
+        .product()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -149,5 +168,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(6420, part1(&parse(include_str!("../input/2022/day13.txt")).unwrap()));
+    }
+
+    #[test]
+    fn part2_example1() {
+        assert_eq!(140, part2(&parse(include_str!("../input/2022/day13.part2.test.140.txt")).unwrap()));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(22000, part2(&parse(include_str!("../input/2022/day13.txt")).unwrap()));
     }
 }
