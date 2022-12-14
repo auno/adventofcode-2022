@@ -29,9 +29,8 @@ fn parse(input: &str) -> Vec<RockSegment> {
         .collect()
 }
 
-#[aoc(day14, part1)]
-fn part1(input: &[RockSegment]) -> usize {
-    let mut occupied = input
+fn find_initial_occupancy(input: &[RockSegment]) -> HashSet<(u32, u32)> {
+    input
         .iter()
         .map(|&segment| match segment {
             ((ax, ay), (bx, by)) if ax > bx => ((bx, by), (ax, ay)),
@@ -45,7 +44,12 @@ fn part1(input: &[RockSegment]) -> usize {
                 })
                 .collect::<Vec<_>>()
         })
-        .collect::<HashSet<_>>();
+        .collect()
+}
+
+#[aoc(day14, part1)]
+fn part1(input: &[RockSegment]) -> usize {
+    let mut occupied = find_initial_occupancy(input);
     let max_y = occupied.iter().copied().map(|(_, y)| y).max().unwrap_or_default();
 
     for round in 0.. {
@@ -59,10 +63,38 @@ fn part1(input: &[RockSegment]) -> usize {
             let Some(next) = [(x, y + 1), (x - 1, y + 1), (x + 1, y + 1)]
                 .into_iter()
                 .find(|candidate| !occupied.contains(candidate))
-            else {
-                occupied.insert((x, y));
-                break;
-            };
+                else {
+                    occupied.insert((x, y));
+                    break;
+                };
+
+            (x, y) = next;
+        }
+    }
+
+    unreachable!()
+}
+
+#[aoc(day14, part2)]
+fn part2(input: &[RockSegment]) -> usize {
+    let mut occupied = find_initial_occupancy(input);
+    let max_y = occupied.iter().copied().map(|(_, y)| y).max().unwrap_or_default();
+
+    for round in 0.. {
+        let (mut x, mut y) = (500, 0);
+
+        if occupied.contains(&(x, y)) {
+            return round;
+        }
+
+        loop {
+            let Some(next) = [(x, y + 1), (x - 1, y + 1), (x + 1, y + 1)]
+                .into_iter()
+                .find(|&(cx, cy)| cy < max_y + 2 && !occupied.contains(&(cx, cy)))
+                else {
+                    occupied.insert((x, y));
+                    break;
+                };
 
             (x, y) = next;
         }
@@ -83,5 +115,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(1061, part1(&parse(include_str!("../input/2022/day14.txt"))));
+    }
+
+    #[test]
+    fn part2_example1() {
+        assert_eq!(93, part2(&parse(include_str!("../input/2022/day14.part2.test.93.txt"))));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(25055, part2(&parse(include_str!("../input/2022/day14.txt"))));
     }
 }
