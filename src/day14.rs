@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 use aoc_runner_derive::{aoc, aoc_generator};
 use itertools::Itertools;
 
@@ -77,30 +77,27 @@ fn part1(input: &[RockSegment]) -> usize {
 
 #[aoc(day14, part2)]
 fn part2(input: &[RockSegment]) -> usize {
-    let mut occupied = find_initial_occupancy(input);
-    let max_y = occupied.iter().copied().map(|(_, y)| y).max().unwrap_or_default();
+    let rocks = find_initial_occupancy(input);
+    let max_y = rocks.iter().copied().map(|(_, y)| y).max().unwrap_or_default();
+    let mut reachable: HashSet<(u32, u32)> = HashSet::from([(500, 0)]);
+    let mut queue: VecDeque<(u32, u32)> = VecDeque::from([(500, 0)]);
 
-    for round in 0.. {
-        let (mut x, mut y) = (500, 0);
-
-        if occupied.contains(&(x, y)) {
-            return round;
+    while let Some((x, y)) = queue.pop_front() {
+        if y > max_y {
+            continue;
         }
 
-        loop {
-            let Some(next) = [(x, y + 1), (x - 1, y + 1), (x + 1, y + 1)]
-                .into_iter()
-                .find(|&(cx, cy)| cy < max_y + 2 && !occupied.contains(&(cx, cy)))
-                else {
-                    occupied.insert((x, y));
-                    break;
-                };
+        for neighbor in [(x, y + 1), (x - 1, y + 1), (x + 1, y + 1)] {
+            if rocks.contains(&neighbor) || reachable.contains(&neighbor) {
+                continue;
+            }
 
-            (x, y) = next;
+            reachable.insert(neighbor);
+            queue.push_back(neighbor);
         }
     }
 
-    unreachable!()
+    reachable.len()
 }
 
 #[cfg(test)]
