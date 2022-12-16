@@ -39,41 +39,6 @@ fn parse(input: &str) -> CaveMap {
     (flow_rates, tunnels)
 }
 
-#[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Clone, Debug)]
-struct State {
-    location: String,
-    opened_valves: Vec<String>,
-    current_flow: usize,
-    cumulative_flow: usize,
-}
-
-impl State {
-    fn new(location: String, opened_valves: Vec<String>, current_flow: usize, cumulative_flow: usize) -> Self {
-        Self { location, opened_valves, current_flow, cumulative_flow }
-    }
-
-    fn neighbors(&self, (flow_rates, _tunnels): &CaveMap, tunnel_distances: &HashMap<(String, String), usize>) -> impl IntoIterator<Item=(State, usize)> {
-        let mut neighbors = vec![];
-
-        for (valve, flow) in flow_rates {
-            if *flow == 0 || *valve == self.location || self.opened_valves.contains(valve) {
-                continue;
-            }
-
-            let distance = tunnel_distances[&(self.location.clone(), valve.clone())] + 1;
-            let mut neighbor = self.clone();
-            neighbor.location = valve.clone();
-            neighbor.opened_valves.push(valve.clone());
-            neighbor.opened_valves.sort();
-            neighbor.cumulative_flow += neighbor.current_flow * distance;
-            neighbor.current_flow += flow;
-            neighbors.push((neighbor, distance));
-        }
-
-        neighbors
-    }
-}
-
 fn tunnel_distances((_, tunnels): &CaveMap) -> HashMap<(String, String), usize> {
     tunnels
         .keys()
@@ -110,35 +75,189 @@ fn tunnel_distances((_, tunnels): &CaveMap) -> HashMap<(String, String), usize> 
         .collect()
 }
 
-#[aoc(day16, part1)]
-fn part1(input: &CaveMap) -> usize {
-    let tunnel_distances = tunnel_distances(input);
-    let mut state_distances: HashMap<State, usize> = HashMap::new();
-    let mut queue: BinaryHeap<(Reverse<usize>, State)> = BinaryHeap::new();
+mod part1 {
+    use super::*;
 
-    let source = State::new("AA".to_string(), vec![], 0, 0);
-    state_distances.insert(source.clone(), 0);
-    queue.push((Reverse(0), source));
+    #[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Clone, Debug)]
+    struct State {
+        location: String,
+        opened_valves: Vec<String>,
+        current_flow: usize,
+        cumulative_flow: usize,
+    }
 
-    while let Some((Reverse(distance), state)) = queue.pop() {
-        for (neighbor, d) in state.neighbors(input, &tunnel_distances) {
-            let neighbor_distance = state_distances.entry(neighbor.clone()).or_insert(usize::MAX);
+    impl State {
+        fn new(location: String, opened_valves: Vec<String>, current_flow: usize, cumulative_flow: usize) -> Self {
+            Self { location, opened_valves, current_flow, cumulative_flow }
+        }
 
-            if *neighbor_distance > distance + d && distance + d <= 30 {
-                *neighbor_distance = distance + d;
-                queue.push((Reverse(*neighbor_distance), neighbor));
+        fn neighbors(&self, (flow_rates, _tunnels): &CaveMap, tunnel_distances: &HashMap<(String, String), usize>) -> impl IntoIterator<Item=(State, usize)> {
+            let mut neighbors = vec![];
+
+            for (valve, flow) in flow_rates {
+                if *flow == 0 || *valve == self.location || self.opened_valves.contains(valve) {
+                    continue;
+                }
+
+                let distance = tunnel_distances[&(self.location.clone(), valve.clone())] + 1;
+                let mut neighbor = self.clone();
+                neighbor.location = valve.clone();
+                neighbor.opened_valves.push(valve.clone());
+                neighbor.opened_valves.sort();
+                neighbor.cumulative_flow += neighbor.current_flow * distance;
+                neighbor.current_flow += flow;
+                neighbors.push((neighbor, distance));
             }
+
+            neighbors
         }
     }
 
-    state_distances
-        .iter()
-        .filter(|(_, distance)| **distance <= 30)
-        .map(|(state, distance)| state.cumulative_flow + (30 - *distance) * state.current_flow)
-        .sorted()
-        .rev()
-        .next()
-        .unwrap()
+    #[aoc(day16, part1)]
+    pub fn part1(input: &CaveMap) -> usize {
+        let tunnel_distances = tunnel_distances(input);
+        let mut state_distances: HashMap<State, usize> = HashMap::new();
+        let mut queue: BinaryHeap<(Reverse<usize>, State)> = BinaryHeap::new();
+
+        let source = State::new("AA".to_string(), vec![], 0, 0);
+        state_distances.insert(source.clone(), 0);
+        queue.push((Reverse(0), source));
+
+        while let Some((Reverse(distance), state)) = queue.pop() {
+            for (neighbor, d) in state.neighbors(input, &tunnel_distances) {
+                let neighbor_distance = state_distances.entry(neighbor.clone()).or_insert(usize::MAX);
+
+                if *neighbor_distance > distance + d && distance + d <= 30 {
+                    *neighbor_distance = distance + d;
+                    queue.push((Reverse(*neighbor_distance), neighbor));
+                }
+            }
+        }
+
+        state_distances
+            .iter()
+            .filter(|(_, distance)| **distance <= 30)
+            .map(|(state, distance)| state.cumulative_flow + (30 - *distance) * state.current_flow)
+            .sorted()
+            .rev()
+            .next()
+            .unwrap()
+    }
+}
+
+mod part2 {
+    use super::*;
+
+    #[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Clone, Debug)]
+    struct Actor {
+        location: String,
+        time: usize,
+    }
+
+    #[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Clone, Debug)]
+    struct State {
+        opened_valves: Vec<String>,
+        actors: [Actor; 2],
+        current_flow: usize,
+        cumulative_flow: usize,
+        time: usize,
+    }
+
+    impl State {
+        fn neighbors(&self, (valves, _tunnels): &CaveMap, tunnel_distances: &HashMap<(String, String), usize>) -> impl IntoIterator<Item=State> {
+            let mut neighbors = vec![];
+
+            if self.actors[0].time >= 26 && self.actors[1].time >= 26 {
+                return vec![];
+            }
+
+            let i = (0..2).min_by_key(|candidate| self.actors[*candidate].time).unwrap();
+
+            for (valve, flow) in valves {
+                if *flow == 0 || *valve == self.actors[i].location || self.opened_valves.contains(valve) {
+                    continue;
+                }
+
+                assert!(self.actors[i].time <= self.time);
+
+                let distance = tunnel_distances[&(self.actors[i].location.clone(), valve.clone())] + 1;
+
+                if self.actors[i].time + distance > 26 {
+                    continue;
+                }
+
+                let mut neighbor = self.clone();
+                neighbor.actors[i].location = valve.clone();
+                neighbor.opened_valves.push(valve.clone());
+                neighbor.opened_valves.sort();
+                neighbor.actors[i].time += distance;
+
+                if neighbor.actors[i].time >= neighbor.time {
+                    neighbor.time = neighbor.actors[i].time;
+                    neighbor.cumulative_flow += neighbor.current_flow * (neighbor.time - self.time);
+                } else {
+                    neighbor.cumulative_flow += flow * (neighbor.time - neighbor.actors[i].time);
+                }
+
+                neighbor.current_flow += flow;
+                neighbors.push(neighbor);
+            }
+
+            if neighbors.is_empty() {
+                let mut neighbor = self.clone();
+                neighbor.time = 26;
+                neighbor.actors[i].time = 26;
+                neighbor.cumulative_flow += neighbor.current_flow * (neighbor.time - self.time);
+                neighbors.push(neighbor);
+            }
+
+            neighbors
+        }
+    }
+
+    #[aoc(day16, part2)]
+    pub fn part2(input: &CaveMap) -> usize {
+        let tunnel_distances = tunnel_distances(input);
+
+        let mut state_distances: HashMap<(usize, usize, Vec<String>), State> = HashMap::new();
+        let mut queue: BinaryHeap<(usize, State)> = BinaryHeap::new();
+
+        let source = State {
+            opened_valves: vec![],
+            actors: [
+                Actor { location: "AA".to_string(), time: 0 },
+                Actor { location: "AA".to_string(), time: 0 },
+            ],
+            current_flow: 0,
+            cumulative_flow: 0,
+            time: 0,
+        };
+        state_distances.insert((0, 0, vec![]), source.clone());
+        queue.push((0, source));
+
+        while let Some((_cumulative_flow, state)) = queue.pop() {
+            for neighbor in state.neighbors(input, &tunnel_distances) {
+                let neighbor_id = (neighbor.actors[0].time, neighbor.actors[1].time, neighbor.opened_valves.clone());
+                let current_best = state_distances
+                    .get(&neighbor_id)
+                    .map(|state| state.cumulative_flow);
+
+                if current_best.is_none() || (neighbor.cumulative_flow >= current_best.unwrap()) {
+                    state_distances.insert(neighbor_id, neighbor.clone());
+                    queue.push((neighbor.cumulative_flow, neighbor));
+                }
+            }
+        }
+
+        state_distances
+            .iter()
+            .filter(|((a, b, _), _state)| *a == 26 && *b == 26)
+            .map(|(_, state)| state.cumulative_flow)
+            .sorted()
+            .rev()
+            .next()
+            .unwrap()
+    }
 }
 
 #[cfg(test)]
@@ -147,6 +266,11 @@ mod tests {
 
     #[test]
     fn part1_example1() {
-        assert_eq!(1651, part1(&parse(include_str!("../input/2022/day16.part1.test.1651.txt"))));
+        assert_eq!(1651, part1::part1(&parse(include_str!("../input/2022/day16.part1.test.1651.txt"))));
+    }
+
+    #[test]
+    fn part2_example1() {
+        assert_eq!(1707, part2::part2(&parse(include_str!("../input/2022/day16.part2.test.1707.txt"))));
     }
 }
