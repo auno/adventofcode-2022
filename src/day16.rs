@@ -104,13 +104,13 @@ mod part1 {
     #[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Clone, Debug)]
     struct State {
         location: usize,
-        opened_valves: Vec<usize>,
+        opened_valves: u16,
         current_flow: usize,
         cumulative_flow: usize,
     }
 
     impl State {
-        fn new(location: usize, opened_valves: Vec<usize>, current_flow: usize, cumulative_flow: usize) -> Self {
+        fn new(location: usize, opened_valves: u16, current_flow: usize, cumulative_flow: usize) -> Self {
             Self { location, opened_valves, current_flow, cumulative_flow }
         }
 
@@ -118,15 +118,16 @@ mod part1 {
             let mut neighbors = vec![];
 
             for (valve, flow) in valves.iter().enumerate() {
-                if *flow == 0 || valve == self.location || self.opened_valves.contains(&valve) {
+                let valve_mask = 1 << valve;
+
+                if *flow == 0 || valve == self.location || self.opened_valves & valve_mask > 0 {
                     continue;
                 }
 
                 let distance = tunnel_distances[&(self.location, valve)] + 1;
                 let mut neighbor = self.clone();
                 neighbor.location = valve;
-                neighbor.opened_valves.push(valve);
-                neighbor.opened_valves.sort();
+                neighbor.opened_valves |= valve_mask;
                 neighbor.cumulative_flow += neighbor.current_flow * distance;
                 neighbor.current_flow += flow;
                 neighbors.push((neighbor, distance));
@@ -143,7 +144,7 @@ mod part1 {
         let mut state_distances: HashMap<State, usize> = HashMap::new();
         let mut queue: BinaryHeap<(Reverse<usize>, State)> = BinaryHeap::new();
 
-        let source = State::new(start_location, vec![], 0, 0);
+        let source = State::new(start_location, 0, 0, 0);
         state_distances.insert(source.clone(), 0);
         queue.push((Reverse(0), source));
 
@@ -180,7 +181,7 @@ mod part2 {
 
     #[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Clone, Debug)]
     struct State {
-        opened_valves: Vec<usize>,
+        opened_valves: u16,
         actors: [Actor; 2],
         cumulative_flow: usize,
     }
@@ -201,7 +202,9 @@ mod part2 {
             };
 
             for (valve, flow) in valves.iter().enumerate() {
-                if *flow == 0 || valve == self.actors[i].location || self.opened_valves.contains(&valve) {
+                let valve_mask = 1 << valve;
+
+                if *flow == 0 || valve == self.actors[i].location || self.opened_valves & valve_mask > 0 {
                     continue;
                 }
 
@@ -212,8 +215,7 @@ mod part2 {
                 }
 
                 let mut neighbor = self.clone();
-                neighbor.opened_valves.push(valve);
-                neighbor.opened_valves.sort();
+                neighbor.opened_valves |= valve_mask;
                 neighbor.actors[i].location = valve;
                 neighbor.actors[i].time += distance;
                 neighbor.cumulative_flow += (26 - neighbor.actors[i].time) * flow;
@@ -233,23 +235,23 @@ mod part2 {
         let &(_, _, start_location) = input;
         let tunnel_distances = tunnel_distances(input);
 
-        let mut state_distances: HashMap<(usize, usize, Vec<usize>), State> = HashMap::new();
+        let mut state_distances: HashMap<(usize, usize, u16), State> = HashMap::new();
         let mut queue: BinaryHeap<(usize, State)> = BinaryHeap::new();
 
         let source = State {
-            opened_valves: vec![],
+            opened_valves: 0,
             actors: [
                 Actor { location: start_location, time: 0 },
                 Actor { location: start_location, time: 0 },
             ],
             cumulative_flow: 0,
         };
-        state_distances.insert((0, 0, vec![]), source.clone());
+        state_distances.insert((0, 0, 0), source.clone());
         queue.push((0, source));
 
         while let Some((_cumulative_flow, state)) = queue.pop() {
             for neighbor in state.neighbors(input, &tunnel_distances) {
-                let neighbor_id = (neighbor.actors[0].time, neighbor.actors[1].time, neighbor.opened_valves.clone());
+                let neighbor_id = (neighbor.actors[0].time, neighbor.actors[1].time, neighbor.opened_valves);
                 let current_best = state_distances
                     .get(&neighbor_id)
                     .map(|state| state.cumulative_flow);
