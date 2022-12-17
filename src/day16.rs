@@ -22,7 +22,7 @@ fn parse(input: &str) -> CaveMap {
         })
         .collect::<Vec<_>>();
 
-    let flow_rates = input
+    let valves = input
         .iter()
         .map(|(valve, flow_rate, _)| {
             (valve.clone(), *flow_rate)
@@ -36,7 +36,7 @@ fn parse(input: &str) -> CaveMap {
         })
         .collect();
 
-    (flow_rates, tunnels)
+    (valves, tunnels)
 }
 
 fn tunnel_distances((_, tunnels): &CaveMap) -> HashMap<(String, String), usize> {
@@ -65,7 +65,6 @@ fn tunnel_distances((_, tunnels): &CaveMap) -> HashMap<(String, String), usize> 
                 }
             }
 
-            // let foo = distances.get(target).copied().unwrap();
             ((source.to_string(), target.to_string()), distances[target.as_str()])
         })
         .flat_map(|((source, target), d)| vec![
@@ -91,10 +90,10 @@ mod part1 {
             Self { location, opened_valves, current_flow, cumulative_flow }
         }
 
-        fn neighbors(&self, (flow_rates, _tunnels): &CaveMap, tunnel_distances: &HashMap<(String, String), usize>) -> impl IntoIterator<Item=(State, usize)> {
+        fn neighbors(&self, (valves, _tunnels): &CaveMap, tunnel_distances: &HashMap<(String, String), usize>) -> impl IntoIterator<Item=(State, usize)> {
             let mut neighbors = vec![];
 
-            for (valve, flow) in flow_rates {
+            for (valve, flow) in valves {
                 if *flow == 0 || *valve == self.location || self.opened_valves.contains(valve) {
                     continue;
                 }
@@ -148,6 +147,7 @@ mod part1 {
 mod part2 {
     use super::*;
 
+
     #[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Clone, Debug)]
     struct Actor {
         location: String,
@@ -158,9 +158,7 @@ mod part2 {
     struct State {
         opened_valves: Vec<String>,
         actors: [Actor; 2],
-        current_flow: usize,
         cumulative_flow: usize,
-        time: usize,
     }
 
     impl State {
@@ -171,14 +169,17 @@ mod part2 {
                 return vec![];
             }
 
-            let i = (0..2).min_by_key(|candidate| self.actors[*candidate].time).unwrap();
+            let i = match (self.actors[0].time, self.actors[1].time) {
+                (0..=25, 0) => 0,
+                (26, 0..=25) => 1,
+                (26, 26) => return vec![],
+                _ => panic!("should not happen!"),
+            };
 
             for (valve, flow) in valves {
                 if *flow == 0 || *valve == self.actors[i].location || self.opened_valves.contains(valve) {
                     continue;
                 }
-
-                assert!(self.actors[i].time <= self.time);
 
                 let distance = tunnel_distances[&(self.actors[i].location.clone(), valve.clone())] + 1;
 
@@ -187,29 +188,17 @@ mod part2 {
                 }
 
                 let mut neighbor = self.clone();
-                neighbor.actors[i].location = valve.clone();
                 neighbor.opened_valves.push(valve.clone());
                 neighbor.opened_valves.sort();
+                neighbor.actors[i].location = valve.clone();
                 neighbor.actors[i].time += distance;
-
-                if neighbor.actors[i].time >= neighbor.time {
-                    neighbor.time = neighbor.actors[i].time;
-                    neighbor.cumulative_flow += neighbor.current_flow * (neighbor.time - self.time);
-                } else {
-                    neighbor.cumulative_flow += flow * (neighbor.time - neighbor.actors[i].time);
-                }
-
-                neighbor.current_flow += flow;
+                neighbor.cumulative_flow += (26 - neighbor.actors[i].time) * flow;
                 neighbors.push(neighbor);
             }
 
-            if neighbors.is_empty() {
-                let mut neighbor = self.clone();
-                neighbor.time = 26;
-                neighbor.actors[i].time = 26;
-                neighbor.cumulative_flow += neighbor.current_flow * (neighbor.time - self.time);
-                neighbors.push(neighbor);
-            }
+            let mut neighbor = self.clone();
+            neighbor.actors[i].time = 26;
+            neighbors.push(neighbor);
 
             neighbors
         }
@@ -228,9 +217,7 @@ mod part2 {
                 Actor { location: "AA".to_string(), time: 0 },
                 Actor { location: "AA".to_string(), time: 0 },
             ],
-            current_flow: 0,
             cumulative_flow: 0,
-            time: 0,
         };
         state_distances.insert((0, 0, vec![]), source.clone());
         queue.push((0, source));
@@ -242,7 +229,7 @@ mod part2 {
                     .get(&neighbor_id)
                     .map(|state| state.cumulative_flow);
 
-                if current_best.is_none() || (neighbor.cumulative_flow >= current_best.unwrap()) {
+                if current_best.is_none() || neighbor.cumulative_flow > current_best.unwrap() {
                     state_distances.insert(neighbor_id, neighbor.clone());
                     queue.push((neighbor.cumulative_flow, neighbor));
                 }
@@ -257,6 +244,7 @@ mod part2 {
             .rev()
             .next()
             .unwrap()
+
     }
 }
 
