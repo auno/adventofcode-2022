@@ -87,12 +87,12 @@ fn resolve_expression(cache: &mut HashMap<String, i64>, expressions: &HashMap<St
 }
 
 #[aoc(day21, part1)]
-fn part1(expressions: &HashMap<String, Expression>) -> i64 {
-    resolve_expression(&mut HashMap::new(), expressions, &"root".to_string()).unwrap()
+fn part1(expressions: &HashMap<String, Expression>) -> Option<i64> {
+    resolve_expression(&mut HashMap::new(), expressions, &"root".to_string())
 }
 
 #[aoc(day21, part2)]
-fn part2(expressions: &HashMap<String, Expression>) -> i64 {
+fn part2(expressions: &HashMap<String, Expression>) -> Option<i64> {
     let mut expressions = expressions.clone();
     let mut cache = HashMap::new();
 
@@ -112,10 +112,10 @@ fn part2(expressions: &HashMap<String, Expression>) -> i64 {
 
     loop {
         if expression_name == "humn" {
-            return expected;
+            return Some(expected);
         }
 
-        let expression = expressions.get(&expression_name.to_string()).unwrap();
+        let expression = expressions.get(&expression_name.to_string())?;
 
         let (a, b) = match expression {
             Expression::Addition(a, b) => (a, b),
@@ -161,16 +161,21 @@ mod tests {
 
     #[test]
     fn part1_example1() {
-        assert_eq!(152, part1(&parse(include_str!("../input/2022/day21.part1.test.152.txt"))));
+        assert_eq!(152, part1(&parse(include_str!("../input/2022/day21.part1.test.152.txt"))).unwrap());
     }
 
     #[test]
     fn part1_input() {
-        assert_eq!(56490240862410, part1(&parse(include_str!("../input/2022/day21.txt"))));
+        assert_eq!(56490240862410, part1(&parse(include_str!("../input/2022/day21.txt"))).unwrap());
     }
 
     #[test]
     fn part2_example1() {
-        assert_eq!(301, part2(&parse(include_str!("../input/2022/day21.part2.test.301.txt"))));
+        assert_eq!(301, part2(&parse(include_str!("../input/2022/day21.part2.test.301.txt"))).unwrap());
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(3403989691757, part2(&parse(include_str!("../input/2022/day21.txt"))).unwrap());
     }
 }
