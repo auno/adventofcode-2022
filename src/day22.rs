@@ -29,7 +29,7 @@ enum Tile {
     Wall,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 enum Direction {
     Up,
     Down,
@@ -49,6 +49,15 @@ impl Direction {
             (Self::Left, Movement::TurnLeft) => Self::Down,
             (Self::Right, Movement::TurnLeft) => Self::Up,
             (_, Movement::Forward(_)) => *self,
+        }
+    }
+
+    fn mods(&self) -> (i32, i32) {
+        match self {
+            Direction::Up => (0, -1),
+            Direction::Down => (0, 1),
+            Direction::Left => (-1, 0),
+            Direction::Right => (1, 0),
         }
     }
 
@@ -75,6 +84,7 @@ impl TryFrom<char> for Tile {
 }
 
 type Input = (HashMap<(i32, i32), Tile>, (i32, i32), Vec<Movement>);
+type Jumps = HashMap<((i32, i32), Direction), ((i32, i32), Direction)>;
 
 #[aoc_generator(day22)]
 fn parse(input: &str) -> Input {
@@ -102,42 +112,78 @@ fn parse(input: &str) -> Input {
     (map, (width, height), movements)
 }
 
-#[aoc(day22, part1)]
-fn part1((map, (width, height), movements): &Input) -> i32 {
-    let (width, height) = (*width, *height);
+fn solve(map: &HashMap<(i32, i32), Tile>, movements: &Vec<Movement>, wrap_strategy: impl Fn((i32, i32), Direction) -> ((i32, i32), Direction)) -> i32 {
     let mut y = 0;
-    let mut x = (0..width).into_iter().find(|x| map.get(&(*x, y)) == Some(&Tile::Open)).unwrap();
+    let mut x = *map.iter().filter(|((_, y), t)| *y == 0 && **t == Tile::Open).map(|((x, _), _)| x).min().unwrap();
     let mut direction = Direction::Right;
 
     for movement in movements {
         match movement {
             Movement::TurnRight | Movement::TurnLeft => { direction = direction.rotate(movement); },
             Movement::Forward(steps) => {
-                let (xmod, ymod) = match direction {
-                    Direction::Up => (0, -1),
-                    Direction::Down => (0, 1),
-                    Direction::Left => (-1, 0),
-                    Direction::Right => (1, 0),
-                };
-
                 for _ in 0..*steps {
-                    let (mut nx, mut ny) = (x + xmod, y + ymod);
+                    let (xmod, ymod) = direction.mods();
+                    let (mut nx, mut ny, mut ndirection) = (x + xmod, y + ymod, direction);
 
-                    while !map.contains_key(&(nx, ny)) {
-                        (nx, ny) = ((nx + xmod).rem_euclid(width), (ny + ymod).rem_euclid(height))
-                    }
+                    ((nx, ny), ndirection) = wrap_strategy((nx, ny), ndirection);
 
                     if map.get(&(nx, ny)) == Some(&Tile::Wall) {
                         break;
                     }
 
-                    (x, y) = (nx, ny);
+                    (x, y, direction) = (nx, ny, ndirection);
                 }
             }
         }
     }
 
     (y + 1) * 1000 + (x + 1) * 4 + direction.value()
+}
+
+fn solve2(map: &HashMap<(i32, i32), Tile>, movements: &Vec<Movement>, jumps: &mut Jumps) -> i32 {
+    solve(map, movements, |(nx, ny), ndirection| {
+        if !map.contains_key(&(nx, ny)) {
+            return *jumps.get(&((nx, ny), ndirection)).unwrap();
+        }
+
+        ((nx, ny), ndirection)
+    })
+}
+
+#[aoc(day22, part1)]
+fn part1((map, (width, height), movements): &Input) -> i32 {
+    solve(map, movements, |(mut nx, mut ny), ndirection| {
+        let (xmod, ymod) = ndirection.mods();
+        while !map.contains_key(&(nx, ny)) {
+            (nx, ny) = ((nx + xmod).rem_euclid(*width), (ny + ymod).rem_euclid(*height))
+        }
+
+        ((nx, ny), ndirection)
+    })
+}
+
+#[aoc(day22, part2)]
+fn part2((map, _, movements): &Input) -> i32 {
+    let mut jumps = HashMap::new();
+
+    for i in 0..50 {
+        jumps.insert(((49, 0 + i), Direction::Left), ((0, 149 - i), Direction::Right));
+        jumps.insert(((-1, 100 + i), Direction::Left), ((50, 49 - i), Direction::Right));
+        jumps.insert(((50 + i, -1), Direction::Up), ((0, 150 + i), Direction::Right));
+        jumps.insert(((-1, 150 + i), Direction::Left), ((50 + i, 0), Direction::Down));
+        jumps.insert(((100 + i, 50), Direction::Down), ((99, 50 + i), Direction::Left));
+        jumps.insert(((100, 50 + i), Direction::Right), ((100 + i, 49), Direction::Up));
+        jumps.insert(((150, 0 + i), Direction::Right), ((99, 149 - i), Direction::Left));
+        jumps.insert(((100, 100 + i), Direction::Right), ((149, 49 - i), Direction::Left));
+        jumps.insert(((100 + i, -1), Direction::Up), ((0 + i, 199), Direction::Up));
+        jumps.insert(((0 + i, 200), Direction::Down), ((100 + i, 0), Direction::Down));
+        jumps.insert(((49, 50 + i), Direction::Left), ((0 + i, 100), Direction::Down));
+        jumps.insert(((0 + i, 99), Direction::Up), ((50, 50 + i), Direction::Right));
+        jumps.insert(((50 + i, 150), Direction::Down), ((49, 150 + i), Direction::Left));
+        jumps.insert(((50, 150 + i), Direction::Right), ((50 + i, 149), Direction::Up));
+    }
+
+    solve2(map, movements, &mut jumps)
 }
 
 #[cfg(test)]
@@ -152,5 +198,35 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(190066, part1(&parse(include_str!("../input/2022/day22.txt"))));
+    }
+
+    #[test]
+    fn part2_example1() {
+        let mut jumps = HashMap::new();
+
+        for i in 0..4 {
+            jumps.insert(((4 + i, 8), Direction::Down), ((8, 11 - i), Direction::Right));
+            jumps.insert(((7, 8 + i), Direction::Left), ((7 - i, 7), Direction::Up));
+            jumps.insert(((8 + i, 12), Direction::Down), ((3 - i, 7), Direction::Up));
+            jumps.insert(((0 + i, 8), Direction::Down), ((11 - i, 11), Direction::Up));
+            jumps.insert(((8 + i, -1), Direction::Up), ((3 - i, 4), Direction::Down));
+            jumps.insert(((0 + i, 3), Direction::Up), ((11 - i, 0), Direction::Down));
+            jumps.insert(((4 + i, 3), Direction::Up), ((8, 0 + i), Direction::Right));
+            jumps.insert(((7, 0 + i), Direction::Left), ((4 + i, 4), Direction::Down));
+            jumps.insert(((12 + i, 7), Direction::Up), ((11, 7 - i), Direction::Left));
+            jumps.insert(((12, 4 + i), Direction::Right), ((15 - i, 8), Direction::Down));
+            jumps.insert(((16, 8 + i), Direction::Right), ((11, 3 - i), Direction::Left));
+            jumps.insert(((12, 0 + i), Direction::Right), ((15, 11 - i), Direction::Left));
+            jumps.insert(((12 + i, 12), Direction::Down), ((0, 7 - i), Direction::Right));
+            jumps.insert(((-1, 4 + i), Direction::Left), ((15 - i, 11), Direction::Up));
+        }
+
+        let (map, _, movements) = parse(include_str!("../input/2022/day22.part2.test.5031.txt"));
+        assert_eq!(5031, solve2(&map, &movements, &mut jumps));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(134170, part2(&parse(include_str!("../input/2022/day22.txt"))));
     }
 }
