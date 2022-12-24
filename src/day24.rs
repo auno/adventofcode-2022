@@ -75,8 +75,8 @@ fn neighbors(map: &HashSet<(i32, i32, i32)>, (x, y, z): (i32, i32, i32), period:
 }
 
 fn distance(map: &HashSet<(i32, i32, i32)>, source: (i32, i32, i32), target: (i32, i32), period: i32) -> Option<usize> {
-    let mut distances: HashMap<(i32, i32, i32), usize> = HashMap::new();
-    let mut queue: BinaryHeap<(Reverse<usize>, (i32, i32, i32))> = BinaryHeap::new();
+    let mut distances = HashMap::new();
+    let mut queue = BinaryHeap::new();
 
     distances.insert(source, 0);
     queue.push((Reverse(0), source));
