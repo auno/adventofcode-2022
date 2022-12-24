@@ -19,8 +19,10 @@ fn lcm(a: i32, b: i32) -> i32 {
     (a * b).abs() / gcd(a, b)
 }
 
+type Input = (HashSet<(i32, i32, i32)>, (i32, i32), (i32, i32), i32);
+
 #[aoc_generator(day24)]
-fn parse(input: &str) -> (HashSet<(i32, i32, i32)>, (i32, i32), (i32, i32), i32) {
+fn parse(input: &str) -> Input {
     let width = input.lines().next().unwrap().len() as i32;
     let height = input.lines().count() as i32;
     let period = lcm(width - 2, height - 2);
@@ -72,10 +74,9 @@ fn neighbors(map: &HashSet<(i32, i32, i32)>, (x, y, z): (i32, i32, i32), period:
         .collect::<Vec<_>>()
 }
 
-fn distance(map: &HashSet<(i32, i32, i32)>, source: (i32, i32), target: (i32, i32), period: i32) -> Option<usize> {
+fn distance(map: &HashSet<(i32, i32, i32)>, source: (i32, i32, i32), target: (i32, i32), period: i32) -> Option<usize> {
     let mut distances: HashMap<(i32, i32, i32), usize> = HashMap::new();
     let mut queue: BinaryHeap<(Reverse<usize>, (i32, i32, i32))> = BinaryHeap::new();
-    let source = (source.0, source.1, 0);
 
     distances.insert(source, 0);
     queue.push((Reverse(0), source));
@@ -99,8 +100,17 @@ fn distance(map: &HashSet<(i32, i32, i32)>, source: (i32, i32), target: (i32, i3
 }
 
 #[aoc(day24, part1)]
-fn part1((map, source, target, period): &(HashSet<(i32, i32, i32)>, (i32, i32), (i32, i32), i32)) -> usize {
-    distance(map, *source, *target, *period).unwrap()
+fn part1((map, source, target, period): &Input) -> usize {
+    distance(map, (source.0, source.1, 0), *target, *period).unwrap()
+}
+
+#[aoc(day24, part2)]
+fn part2((map, source, target, period): &Input) -> usize {
+    let a = distance(map, (source.0, source.1, 0), *target, *period).unwrap();
+    let b = distance(map, (target.0, target.1, a as i32), *source, *period).unwrap();
+    let c = distance(map, (source.0, source.1, (a + b) as i32), *target, *period).unwrap();
+
+    a + b + c
 }
 
 #[cfg(test)]
@@ -115,5 +125,15 @@ mod tests {
     #[test]
     fn part1_input() {
         assert_eq!(269, part1(&parse(include_str!("../input/2022/day24.txt"))));
+    }
+
+    #[test]
+    fn part2_example1() {
+        assert_eq!(54, part2(&parse(include_str!("../input/2022/day24.part2.test.54.txt"))));
+    }
+
+    #[test]
+    fn part2_input() {
+        assert_eq!(825, part2(&parse(include_str!("../input/2022/day24.txt"))));
     }
 }
